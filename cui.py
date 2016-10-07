@@ -8,16 +8,24 @@ from modules.ShellModules import ShellModules
 from modules._getch import _Getch
 
 VERSION='0.1'
-global_help = '''
-Help string here.
-'''
 
 class ShellInputter:
     def __init__(self):
         self.size = [0, 0]
         self.history = ['']
+        self.hist_cur = len(self.history)
+        self.binds = []
         self.prompt = '>>> '
         self.getch = _Getch()
+        # regist key bindings to itself
+        self.regist(chr(0x03), self.clear)
+        self.regist(chr(0x08), self.backspace)
+        self.regist(chr(0x7f), self.backspace)
+        self.regist(chr(0x10), self.historyUp)
+        self.regist('\x1b[A', self.historyUp)
+        self.regist(chr(0x0e), self.historyDown)
+        self.regist('\x1b[B', self.historyDown)
+        self.regist(chr(0x0d), self.newline)
 
     def setConsoleSize(self, rows, columns):
         self.size[0] = rows
@@ -29,31 +37,41 @@ class ShellInputter:
     def input(self):
         import sys
         cmd = ''
+        term = False
         cur = len(self.history)
         print(self.prompt),
         while True:
             ch = self.getch()
-            if ch == chr(0x03):
-                cmd = ''
-                break
-            elif ch == chr(0x08) or ch == chr(127):
-                cmd = cmd[:-1]
-            elif ch == chr(0x10) or ch == '\x1b[A': # Ctrl+p / Arrow UP
-                cur = cur-1 if cur > 0 else cur
-                cmd = self.history[cur]
-            elif ch == chr(0x0e) or ch == '\x1b[B': # Ctrl+n / Arrow down
-                cur = cur+1 if cur < len(self.history)-1 else len(self.history)-1
-                cmd = self.history[cur]
-            elif ch == chr(0x0d):
-                break
-            else:
+            matched = False
+            for bind in self.binds:
+                if ch == bind['key'] :
+                    cmd, term = bind['callback'](cmd)
+                    matched = True
+            if not matched:
                 cmd += ch
+            if term : break
             print('\r' + ' '*(self.size[1] - 1) ),
             print('\r' + self.prompt + cmd),
         print('')
         self.history.append(cmd.strip())
+        self.hist_cur = len(self.history)
         cmd = shlex.split(cmd)
         return cmd
+
+    def clear(self, cmd):
+        return '', True
+    def backspace(self, cmd):
+        return cmd[:-1], False
+    def newline(self, cmd):
+        return cmd, True
+    def historyUp(self, cmd):
+        self.hist_cur = self.hist_cur-1 if self.hist_cur > 0 else self.hist_cur
+        return self.history[self.hist_cur], False
+    def historyDown(self, cmd):
+        self.hist_cur = self.hist_cur+1 if self.hist_cur < len(self.history)-1 else len(self.history)-1
+        return self.history[self.hist_cur], False
+    def regist(self, key, callback):
+        self.binds.append({ 'key':key, 'callback':callback } )
 
 class ShellEvaluator:
     def __init__(self, modules):
@@ -123,8 +141,11 @@ class ShellSkelton:
         self.inputter.setConsoleSize( self.rows, self.columns )
         self.outputter.setConsoleSize( self.rows, self.columns )
 
-    # この関数はoverrideして自由に書き換えるようにする。
     def main(self):
+        '''This function is the main loop of interactive shell.
+        You can override this function to change global behavior
+        of the interactive shell, such as change the mode of shell or so on.
+        '''
         while True:
             cmd = self.inputter.input()
             ret = self.evaluator.evaluate(cmd)

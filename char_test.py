@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import sys,tty,termios
 class _Getch:       
         def __call__(self):
@@ -12,13 +14,11 @@ class _Getch:
 
 def get():
     inkey = _Getch()
-    while(1):
-        k=inkey()
-        if k!='':break
+    k=inkey()
     print 'you pressed', ord(k)
 
 def main():
-        for i in range(0,25):
+        for i in range(0,3):
             get()
 
 if __name__=='__main__':
