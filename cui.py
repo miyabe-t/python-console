@@ -4,7 +4,7 @@
 import os
 import sys
 import shlex
-from modules.ShellCore import ShellCore
+from modules.ShellModules import ShellModules
 from modules._getch import _Getch
 
 VERSION='0.1'
@@ -12,15 +12,11 @@ global_help = '''
 Help string here.
 '''
 
-class CLICommands:
-    def __init__(self):
-        self.list = []
-
 class ShellInputter:
     def __init__(self):
         self.size = [0, 0]
         self.history = ['']
-        self.prompt = '>>>'
+        self.prompt = '>>> '
         self.getch = _Getch()
 
     def setConsoleSize(self, rows, columns):
@@ -60,11 +56,11 @@ class ShellInputter:
         return cmd
 
 class ShellEvaluator:
-    def __init__(self):
+    def __init__(self, modules):
         self.cmds = []
         self.prefix = 'cbk_'
         self.suffix = '_aliases'
-        self.core = ShellCore()
+        self.core = modules
 
         # search functions start with `self.prefix` and convert them
         # into a dictionary which contains a commands list a and callback method
@@ -112,12 +108,14 @@ class ShellOutputter:
     def output(self):
         pass
 
-class MyShell:
-    def __init__(self):
+class ShellSkelton:
+    def __init__(self, modules=ShellModules() ):
         self.inputter = ShellInputter()
-        self.evaluator = ShellEvaluator()
+        self.evaluator = ShellEvaluator(modules)
         self.outputter = ShellOutputter()
         self.checkSize()
+        global VERSION
+        print("This is SkeltonShell ver.{0}".format(VERSION))
 
     def checkSize(self):
         self.rows, self.columns = os.popen('stty size', 'r').read().split()
@@ -125,9 +123,8 @@ class MyShell:
         self.inputter.setConsoleSize( self.rows, self.columns )
         self.outputter.setConsoleSize( self.rows, self.columns )
 
+    # この関数はoverrideして自由に書き換えるようにする。
     def main(self):
-        global VERSION
-        print("This is CLI ver.{0}".format(VERSION))
         while True:
             cmd = self.inputter.input()
             ret = self.evaluator.evaluate(cmd)
@@ -135,5 +132,5 @@ class MyShell:
             self.outputter.output()
             
 if __name__ == '__main__':
-    shell = MyShell()
+    shell = ShellSkelton()
     shell.main()

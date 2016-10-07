@@ -1,4 +1,4 @@
-class ShellCore:
+class ShellModules:
     def __init__(self):
         self.test_aliases = ['t']
         self.quit_aliases = ['q', 'exit']
