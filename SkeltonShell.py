@@ -153,5 +153,4 @@ class ShellSkelton:
             self.outputter.output()
             
 if __name__ == '__main__':
-    shell = ShellSkelton()
-    shell.main()
+    print('Running this file directly has no meaning...')

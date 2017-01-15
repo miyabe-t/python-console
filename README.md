@@ -8,19 +8,19 @@ means that the program which isn't just a sequential script.
 
 All you have to do with this library is to make a module class, which contains
 commands and related functions, and pass the instance of the class to `SkeltonShell`.
-But the important point of creating a module class is "naming rule".
+But the important point of creating a module class is **naming rule** .
 
 ## Naming rule of SkeltonShell modules
 
 `SkeltonShell` analyze a module class and automatically make commands and callback
-functions, so you must  the naming rule of `SkeltonShell` to make a correct program.
+functions, so you must protect the naming rule of `SkeltonShell` to make a correct program.
 
 ### Commands and functions
 
 All the commands are derived from the name of functions of module class. Functions 
-start with `cbk_` is recognized as command related functions, then the program
-extract string after `cbk_` and regist it as a command. And a command is tied to 
-that function. 
+start with `cbk_` is recognized as a command related function (callback function), 
+then the program extract string after `cbk_` and regist it as a command.
+And a command is tied to that function. 
 
 For example, if your module class have function named `cbk_test`, the program will
 regist the command `test`. If a user types the command `test`, the program will
@@ -57,4 +57,4 @@ For example, `self.test_aliases = ['t']` for an aliase for the `test` command.
 		shell = SkeltonShell(cmds)
 		shell.main()
 
-Then you can use commands : add, del, show (also sh, s).
+Then you can use commands : `add`, `del`, `show` (also as `sh`, `s`).

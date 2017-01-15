@@ -1,5 +1,10 @@
 #!/usr/bin/python
 
+# Purpose of this program
+#  -> Inspect the ascii code of chars, key-bindings.
+#
+
+
 import sys,tty,termios
 class _Getch:       
         def __call__(self):
