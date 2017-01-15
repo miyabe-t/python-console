@@ -35,26 +35,33 @@ stands for each command.
 For example, `self.test_aliases = ['t']` for an aliase for the `test` command.
 
 ## Code Example
+	
+```python
+import SkeltonShell
 
-	import SkeltonShell
+# The class which contains your own commands amd callbacks.
+class MyCommands:
+	def __init__(self):
+		self.items = []
+		# set the aliases for the command named `show` as `sh` and `s`
+		self.show_aliases = [ 'sh', 's' ]
 
-	class MyCommands:
-		def __init__(self):
-			self.items = []
-			self.show_aliases = [ 'sh', 's' ]
+	# the command named `add`, and its callback
+	def cbk_add(self, args):
+		self.items.append(args[0])
+			
+	# the command named `del`, and its callback
+	def cbk_del(self, args):
+		self.items.remove(args[0])
 
-		def cbk_add(self, args):
-			self.items.append(args[0])
+	# the command named `show`, and its callback
+	def cbk_show(self, args):
+		print(self.items)
 
-		def cbk_del(self, args):
-			self.items.remove(args[0])
-
-		def cbk_show(self, args):
-			print(self.items)
-
-	if __name__ == '__main__':
-		cmds = MyCommands()
-		shell = SkeltonShell(cmds)
-		shell.main()
+if __name__ == '__main__':
+	cmds = MyCommands()
+	shell = SkeltonShell(cmds)
+	shell.main()
+```
 
 Then you can use commands : `add`, `del`, `show` (also as `sh`, `s`).
