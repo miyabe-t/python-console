@@ -12,7 +12,7 @@ A module must have commands, aliases of commands and
 function invoked by commands. You must follow the naming
 convention described in README.
 """
-from SkeltonShell import SkeltonShell
+from skltnsh import SkeltonShell
 
 
 class ModuleExample:

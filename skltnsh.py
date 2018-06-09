@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# enable python3's print function in Python2.x
+from __future__ import print_function
 import os
 import shlex
 from modules._getch import _Getch
+
 
 VERSION = '0.1'
 
@@ -40,7 +43,7 @@ class ShellInputter:
     def input(self):
         cmd = ''
         term = False
-        print(self.prompt),
+        print(self.prompt, end='', flush=True)
         while True:
             ch = self.getch()
             matched = False
@@ -52,8 +55,8 @@ class ShellInputter:
                 cmd += ch
             if term:
                 break
-            print('\r' + ' '*(self.size[1] - 1)),
-            print('\r' + self.prompt + cmd),
+            print('\r' + ' '*(self.size[1] - 1), end='')
+            print('\r' + self.prompt + cmd, end='', flush=True)
         print('')
         self.history.append(cmd.strip())
         self.hist_cur = len(self.history)
