@@ -6,7 +6,7 @@
 
 
 import sys,tty,termios
-class _Getch:       
+class _Getch:
         def __call__(self):
             fd = sys.stdin.fileno()
             old_settings = termios.tcgetattr(fd)
@@ -20,7 +20,7 @@ class _Getch:
 def get():
     inkey = _Getch()
     k=inkey()
-    print 'you pressed', ord(k)
+    print('you pressed', ord(k))
 
 def main():
         for i in range(0,3):
