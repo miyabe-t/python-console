@@ -2,53 +2,82 @@
 
 ## Introduction
 
-`SkeltonShell` is the library for someone who want to create command line
-interface with python.
+`SkeltonShell` is the library for someone who wants to create command line
+interface (CLI) using python. This library provides you easy-to-use bash-like
+command line interface.
 
-All you have to do with this library is to make a module class containing
-commands and related functions, then pass a instance of that module class to
-`SkeltonShell`.  A module class must follow the **naming rule** .
 
-## The naming rule of SkeltonShell modules
+Comprehensive Guideline:
 
-`SkeltonShell` analyze a name of functions or variables which a module class
-has, and automatically generate commands and callback functions.  So you must
-follow the naming rule of `SkeltonShell` to make a module.
+- make the core module
+- pass a instance of the class to `SkeltonShell`.
 
-### Naming Rule 1: Commands and functions
+The core module is the module containing
+- definitions of commands
+- definitions of functions to control core logics
 
-```
-def cbk_<commandName>(self):
-    # do something
-```
+## How to create the core module
 
-Callback functions must have `cbk_` as prefix.
-Words after `cbk_` prefix is treated as a command.
+It's just a module, a class.
+You can create the core module as you like. But you need to follow some rules
+since `SkeltonShell` analyzes your core module in order to generate commands.
 
-All the commands are derived from the name of functions of a module class.
-Functions start with `cbk_` is recognized as a command related function
-(callback function), then the program extract string after `cbk_` and register
-it as a command.  So when you declaer a callback function, you also declear a
-command name.
+After creation, you need to create an instance of the core module and
+create an instance of `SkeltonShell` with instances of the core module.
+Then, call `main()` of `SkeltonShell`. This will start CLI session.
 
-For example, if your module class has function named `cbk_test`, the program
-will register the command `test`. If a user types the command `test`, the program
-will invoke the function `cbk_test`.
+Example:
 
-### Naming Rule 2: Aliases of commands
-
-```
-self.<commandName>_aliases = [ <alias0>, <aliase1>, ... ]
+```python
+mc = MyCommands()
+ex = SkeltonShell(modules=mc)
+ex.main()
 ```
 
-An array of command named `*_aliases` defines aliases of a given command.
+The entire sample of the core module is depicted in the end of this document.
+It would be great to take a glance at that to get a big-picture.
 
-You can add aliases to each command. This is also contrained by naming rule. If
-you wish to add aliases, just append list variable named
-`<commandName>_aliases` to module class. `<commandName>` stands for each
-command.
+### Create commands
 
-For example, `self.test_aliases = ['t']` for an aliase for the `test` command.
+In order to create commands, you need to create functions with specific prefix, `cbk_` .
+For example, if you create a function like this:
+
+```python
+def cbk_test(self, args):
+  print('Do special things')
+```
+
+This function will be interpreted as a command `test` .
+If users type `test` in our shell, then `cbk_test` will be called.
+
+Note that callback functions should take two arguments.
+The first one is `self`, and second one is a list of arguments for the command.
+
+Sometimes we need targets and options for commands. This feature is useful
+in such a case.
+
+For example, if users type this:
+
+```
+>>> add light_task John
+```
+
+then the second argument of `cbk_add` function will be `['light_task', 'John']` .
+
+### Create aliases
+
+In order to declare aliases for your commands, you need to define arrays
+containing aliases for the command.
+
+Let's see the example:
+
+```python
+self.test_aliases = [ 't', 'te' ]
+```
+
+By defining `test_aliases` above, you can define aliases, `t` and `te`,
+for the command called `test` . So users can use `test` command by just typing
+`t` or `te` .
 
 ## Code Example
 
@@ -56,6 +85,7 @@ For example, `self.test_aliases = ['t']` for an aliase for the `test` command.
 from skltnsh import SkeltonShell
 
 class MyCommands:
+    """Manage a list through command line"""
     def __init__(self):
         self.items = []
         self.show_aliases = [ 'sh', 's' ]
