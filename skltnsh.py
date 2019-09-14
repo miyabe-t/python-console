@@ -14,24 +14,33 @@ VERSION = '0.1'
 # TODO detect current cursor pos, delete chars must follow that pos
 class ShellInputter:
     def __init__(self):
+        self.cmd = ''
         self.size = [0, 0]
         self.history = ['']
         self.hist_cur = len(self.history)
         self.cursor = 0
+        self.cursor_dif = 0
+        self.insert = False
         self.binds = []
         self.prompt = '>>> '
         self.getch = _Getch()
-        # regist special keys (console specific keys)
-        self.regist(chr(0x03), self.clear)
-        self.regist('\x15', self.delete_all)      # C-u
-        self.regist('\x17', self.delete_word)     # C-w
-        self.regist(chr(0x08), self.delete_char)  # C-h
-        self.regist(chr(0x7f), self.delete_char)
-        self.regist(chr(0x10), self.historyUp)
-        self.regist('\x1b[A', self.historyUp)
-        self.regist(chr(0x0e), self.historyDown)
-        self.regist('\x1b[B', self.historyDown)
-        self.regist(chr(0x0d), self.newline)
+
+        # register special keys
+        self.register(chr(0x01), self.moveToHead)      # C-a
+        self.register(chr(0x03), self.clear)           # C-c
+        self.register(chr(0x05), self.moveToTail)      # C-e
+        self.register(chr(0x15), self.deleteAll)       # C-u
+        self.register(chr(0x17), self.deleteWord)      # C-w
+        self.register(chr(0x08), self.deleteChar)      # C-h
+        self.register(chr(0x7f), self.deleteChar)      # backspace
+        self.register(chr(0x10), self.historyUp)       # C-p
+        self.register('\x1b[A', self.historyUp)        # up arrow
+        self.register(chr(0x0e), self.historyDown)     # C-n
+        self.register('\x1b[B', self.historyDown)      # down arrow
+        self.register('\x1b[C', self.moveForward)      # right arrow
+        self.register('\x1b[D', self.moveBackward)     # left arrow
+        self.register(chr(0x0a), self.newline)         # C-j
+        self.register(chr(0x0d), self.newline)         # Enter
 
     def setConsoleSize(self, rows, columns):
         self.size[0] = rows
@@ -41,57 +50,103 @@ class ShellInputter:
         self.prompt = prmpt
 
     def input(self):
-        cmd = ''
+        self.cmd = ''
         term = False
         print(self.prompt, end='', flush=True)
         while True:
             ch = self.getch()
+            # if key-bind matching occured or not
             matched = False
+            # default cursor movement is +1
+            self.cursor_dif = 1
+
             for bind in self.binds:
                 if ch == bind['key']:
-                    cmd, term = bind['callback'](cmd)
+                    term = bind['callback']()
                     matched = True
-            if not matched:
-                cmd += ch
+                    self.cursor_dif = 0
+
             if term:
                 break
-            print('\r' + ' '*(self.size[1] - 1), end='')
-            print('\r' + self.prompt + cmd, end='', flush=True)
+
+            self.updateCursor()
+
+            if not matched:
+                head = self.cursor - 1 if (self.cursor > 0) else 0
+                self.cmd = self.cmd[:head] + ch + self.cmd[head:]
+
+            self.updateCurLine()
         print('')
-        self.history.append(cmd.strip())
+        self.history.append(self.cmd.strip())
         self.hist_cur = len(self.history)
-        cmd = shlex.split(cmd)
-        return cmd
+        self.cursor = 0
+        splitted_cmd = shlex.split(self.cmd)
+        return splitted_cmd
 
-    def clear(self, cmd):
-        return '', True
+    def updateCursor(self):
+        self.cursor += self.cursor_dif
+        if self.cursor < 0:
+            self.cursor = 0
+        if self.cursor > len(self.cmd) + 1:
+            self.cursor = len(self.cmd) + 1
 
-    def delete_all(self, cmd):
-        return '', False
+    def updateCurLine(self):
+        print('\r' + ' '*(self.size[1] - 1), end='')
+        print('\r' + self.prompt + self.cmd, end='', flush=True)
+        print('\r' + self.prompt + self.cmd[:self.cursor], end='', flush=True)
+        return
 
-    def delete_char(self, cmd):
-        return cmd[:-1], False
+    def clear(self):
+        self.cmd = ''
+        return True
 
-    def delete_word(self, cmd):
-        words = cmd.split(' ')
-        return ' '.join(words[:-1]), False
+    def deleteAll(self):
+        self.cmd = ''
+        return False
 
-    def newline(self, cmd):
-        return cmd, True
+    def deleteChar(self):
+        self.cmd = self.cmd[:-1]
+        return False
 
-    def historyUp(self, cmd):
+    def deleteWord(self):
+        words = self.cmd.split(' ')
+        self.cmd = ' '.join(words[:-1])
+        return False
+
+    def newline(self):
+        return True
+
+    def historyUp(self):
         if self.hist_cur > 0:
             self.hist_cur = self.hist_cur-1
-        return self.history[self.hist_cur], False
+        self.cmd = self.history[self.hist_cur]
+        return False
 
-    def historyDown(self, cmd):
+    def historyDown(self):
         if self.hist_cur < len(self.history)-1:
             self.hist_cur = self.hist_cur+1
         else:
             len(self.history)-1
-        return self.history[self.hist_cur], False
+        self.cmd = self.history[self.hist_cur]
+        return False
 
-    def regist(self, key, callback):
+    def moveForward(self):
+        self.cursor_dif = 1
+        return False
+
+    def moveBackward(self):
+        self.cursor_dif = -1
+        return False
+
+    def moveToHead(self):
+        self.cursor_dif = (-1) * self.cursor
+        return False
+
+    def moveToTail(self):
+        self.cursor_dif = len(self.cmd) - self.cursor + 1
+        return False
+
+    def register(self, key, callback):
         self.binds.append({'key': key, 'callback': callback})
 
 
@@ -104,7 +159,7 @@ class ShellEvaluator:
 
         # search functions start with `self.prefix` and convert them into a
         # dictionary which contains a commands list a and callback method via
-        # `self.regist()`. Aliases are also defined using nameing rule.
+        # `self.register()`. Aliases are also defined using nameing rule.
         func_names = [func for func in dir(self.core) if 'cbk_' in func]
         for func_name in func_names:
             func = getattr(self.core, func_name)
@@ -112,9 +167,9 @@ class ShellEvaluator:
             if hasattr(self.core, cmd[1] + self.suffix):
                 for item in getattr(self.core, cmd[1]+self.suffix):
                     cmd.append(item)
-            self.regist(cmd, func)
+            self.register(cmd, func)
 
-    def regist(self, commands, callback):
+    def register(self, commands, callback):
         '''
         Args:
         commands (list(str)):
