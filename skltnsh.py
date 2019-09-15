@@ -11,7 +11,6 @@ from modules._getch import _Getch
 VERSION = '0.1'
 
 
-# TODO detect current cursor pos, delete chars must follow that pos
 class ShellInputter:
     def __init__(self):
         self.cmd = ''
@@ -33,6 +32,7 @@ class ShellInputter:
         self.register(chr(0x17), self.deleteWord)      # C-w
         self.register(chr(0x08), self.deleteChar)      # C-h
         self.register(chr(0x7f), self.deleteChar)      # backspace
+        self.register('\x1b[3', self.deleteFolChar)    # delete key
         self.register(chr(0x10), self.historyUp)       # C-p
         self.register('\x1b[A', self.historyUp)        # up arrow
         self.register(chr(0x0e), self.historyDown)     # C-n
@@ -64,8 +64,6 @@ class ShellInputter:
                 if ch == bind['key']:
                     term = bind['callback']()
                     matched = True
-                    self.cursor_dif = 0
-
             if term:
                 break
 
@@ -105,12 +103,27 @@ class ShellInputter:
         return False
 
     def deleteChar(self):
-        self.cmd = self.cmd[:-1]
+        self.cursor_dif = -1
+        self.cmd = self.cmd[:self.cursor-1] + self.cmd[self.cursor:]
+        return False
+
+    def deleteFolChar(self):
+        self.cursor_dif = -1
+        self.cmd = self.cmd[:self.cursor] + self.cmd[self.cursor+1:]
         return False
 
     def deleteWord(self):
-        words = self.cmd.split(' ')
-        self.cmd = ' '.join(words[:-1])
+        cutoff_point = self.cmd.rstrip().rfind(' ', 0, self.cursor)
+
+        if cutoff_point == -1:
+            # Could not find a space.
+            # This means a user is now on a first word
+            # In this case we have nothing to do since we will do +1 after
+            pass
+
+        # some +1 used in order to deal with a target white space
+        self.cmd = self.cmd[:cutoff_point+1] + self.cmd[self.cursor:]
+        self.cursor_dif = cutoff_point - self.cursor + 1
         return False
 
     def newline(self):
@@ -120,6 +133,7 @@ class ShellInputter:
         if self.hist_cur > 0:
             self.hist_cur = self.hist_cur-1
         self.cmd = self.history[self.hist_cur]
+        self.cursor_dif = 0
         return False
 
     def historyDown(self):
@@ -128,6 +142,7 @@ class ShellInputter:
         else:
             len(self.history)-1
         self.cmd = self.history[self.hist_cur]
+        self.cursor_dif = 0
         return False
 
     def moveForward(self):
@@ -192,6 +207,7 @@ class ShellEvaluator:
                 return cmd['callback'](args[1:])
         else:
             print('No such a command : {0}'.format(args[0]))
+
 
 
 class ShellOutputter:
